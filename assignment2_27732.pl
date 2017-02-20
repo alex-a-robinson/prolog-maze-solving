@@ -9,7 +9,7 @@ solve_task(Task,Cost) :-
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 solve_task_1_3(Task,Cost) :- % NOTE OLD
   agent_current_position(oscar,P),
-  solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
+  solve_task_bt(Task,[c(0,0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
   reverse(R,[_Init|Path]),
   agent_do_moves(oscar,Path).
 
@@ -75,20 +75,20 @@ solve_task_4(Task,Cost):-
 solve_task_bt(Task,Current,Depth,RPath,[cost(Cost),depth(Depth)],NewPos) :-
   achieved(Task,Current,RPath,Cost,NewPos).
 solve_task_bt(Task,Current,D,RR,Cost,NewPos) :-
-  Current = [c(F,P)|RPath],
+  Current = [c(_,F,P)|RPath],
   search(P,P1,R,C),
   \+ memberchk(R,RPath),  % check we have not been here already
   D1 is D+1,
   F1 is F+C,
-  solve_task_bt(Task,[c(F1,P1),R|RPath],D1,RR,Cost,NewPos).  % backtrack search
+  solve_task_bt(Task,[c(_,F1,P1),R|RPath],D1,RR,Cost,NewPos).  % backtrack search
 
 achieved(go(Exit),Current,RPath,Cost,NewPos) :-
-  Current = [c(Cost,NewPos)|RPath],
+  Current = [c(_,Cost,NewPos)|RPath],
   ( Exit=none -> true
   ; otherwise -> RPath = [Exit|_]
   ).
 achieved(find(O),Current,RPath,Cost,NewPos) :-
-  Current = [c(Cost,NewPos)|RPath],
+  Current = [c(_,Cost,NewPos)|RPath],
   ( O=none    -> true
   ; otherwise -> RPath = [Last|_],map_adjacent(Last,_,O)
   ).
