@@ -16,26 +16,27 @@ solve_task_1_3(Task,Cost) :- % NOTE OLD
 solve_task_1_3_new(Task, Cost) :- % TODO update name
   agent_current_position(oscar, Pos),
   calc_fvalue(Task, Pos, 0, FCost),
-  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath),
+  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),
   reverse(ReversedPath, [_Init|Path]),
-  agent_do_moves(oscar,Path)
+  agent_do_moves(oscar,Path).
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Part1: A star search
-solve_task_astar(%TODO) :-
-  achived(Task, Current, RPath, Cost, NewPos).
-solve_task_astar(Task, Agenda, ReversedPath) :-
-  Agenda = [Node|AgendaTail], % Get current node
-  find_children(Task, Node, Children),
+% Part1: A star search
+solve_task_astar(Task, [Current|_], ReversedPath, [cost(Cost),depth(Depth)], NewPos) :-
+  achieved(Task, Current, ReversedPath, Cost, NewPos),
+  length(ReversedPath, Depth).
+solve_task_astar(Task, Agenda, ReversedPath, Cost, NewPos) :-
+  Agenda = [Current|AgendaTail], % Get current node
+  find_children(Task, Current, Children),
   insert_many_into_agenda(Children, AgendaTail, NewAgenda),
-  solve_task_astar(Task, NewAgenda, ReversedPath).
+  solve_task_astar(Task, NewAgenda, ReversedPath, Cost, NewPos).
   % Get children, calc fvalues, insert into OpenList maintaing smallest order
 
 insert_many_into_agenda([], Agenda, Agenda).
 insert_many_into_agenda([Child|Children], Agenda, NewAgenda) :-
-  insert_into_agenda(Chiild, Agenda, _Agenda), % _Agenda is Agenda without Child
-  insert_many_into_agenda(Children, _Agenda, NewAgenda).
+  insert_into_agenda(Child, Agenda, TempAgenda), % TempAgenda is Agenda without Child
+  insert_many_into_agenda(Children, TempAgenda, NewAgenda).
 
 insert_into_agenda(Node,Agenda,Agenda) :- repeat_node(Node,Agenda), ! .
 insert_into_agenda(Node,[A|R],[Node,A|R]) :- cheaper(Node,A), ! .
@@ -46,7 +47,7 @@ repeat_node([c(_, _, Pos)|_], [[c(_, _, Pos)|_]|_]).
 cheaper([c(FCost1, _, _)|_], [c(FCost2, _, _)|_]) :- FCost1 <  FCost2.
 
 find_children(Task, Node, Children) :-
-  Node = [c(FCost, GCost, NodePos)|Path],
+  Node = [c(_, GCost, NodePos)|Path],
   bagof([c(ChildFCost, ChildGCost, ChildPos), ChildPos|Path],
     ( search(NodePos, ChildPos, ChildPos, C),
       ChildGCost is GCost + C,
