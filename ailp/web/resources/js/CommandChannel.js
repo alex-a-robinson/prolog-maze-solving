@@ -25,7 +25,7 @@ var CommandChannel = (function ($) {
     var agents = [];
 
 	var default_options = {
-		url: "http://127.0.0.1:8000",
+		url: "http://127.0.0.1:8001",
 		type: "POST",
 		interval: 2000, // 2 seconds
 		repeat: 9007199254740992    // MAXINT
