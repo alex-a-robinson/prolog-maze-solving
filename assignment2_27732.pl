@@ -31,7 +31,6 @@ solve_task_astar(Task, Agenda, ReversedPath, Cost, NewPos) :-
   find_children(Task, Current, Children),
   insert_many_into_agenda(Children, AgendaTail, NewAgenda),
   solve_task_astar(Task, NewAgenda, ReversedPath, Cost, NewPos).
-  % Get children, calc fvalues, insert into OpenList maintaing smallest order
 
 insert_many_into_agenda([], Agenda, Agenda).
 insert_many_into_agenda([Child|Children], Agenda, NewAgenda) :-
@@ -48,11 +47,12 @@ cheaper([c(FCost1, _, _)|_], [c(FCost2, _, _)|_]) :- FCost1 <  FCost2.
 
 find_children(Task, Node, Children) :-
   Node = [c(_, GCost, NodePos)|Path],
-  bagof([c(ChildFCost, ChildGCost, ChildPos), ChildPos|Path],
+  (bagof([c(ChildFCost, ChildGCost, ChildPos), ChildPos|Path],
     ( search(NodePos, ChildPos, ChildPos, C),
+      \+ memberchk(ChildPos, Path), % Don't unclude if already visited
       ChildGCost is GCost + C,
       calc_fvalue(Task, ChildPos, ChildGCost, ChildFCost)
-    ), Children).
+    ), Children); Children = []). % Fill children or empty
 
 calc_fvalue(find(_), _, GCost, FCost) :-
   FCost is GCost.
