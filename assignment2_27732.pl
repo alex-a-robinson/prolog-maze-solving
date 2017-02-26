@@ -87,7 +87,6 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 % % Return the pos found by a star
 move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   agent_current_position(oscar, Pos),
-  writeln(Task),
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
@@ -97,30 +96,24 @@ move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
 find_charging_station_positions([], Charging_Stations, Charging_Stations).
 find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations) :-
     Unvisited_Charging_Stations = [Next_Charging_Station|CSs],
-    writeln("Looking for " + Next_Charging_Station),
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
-    writeln("Found for " + FoundID + " of type " + FoundType),
     agent_current_position(oscar, Pos),
-    % TODO Compare type + remove from CS
-    writeln("FAiling"),
-    ( char_code("c", C), FoundType = C ->
-        ( \+ memberchk(FoundID, CSs)          -> writeln("Found a different cs along the way"), find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
-        ; FoundID = Next_Charging_Station -> writeln("Located cs"), find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations)
-        ; FoundID \= Next_Charging_Station -> writeln("Found cs which has already been seen"), delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations)
+    ( char_code("c", C), FoundType = C, map_adjacent(Pos, Adj, c(FoundID)) ->
+        ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Adj|Working_Charging_Stations], Charging_Stations)
+        ; FoundID = Next_Charging_Station  -> find_charging_station_positions(CSs, [Adj|Working_Charging_Stations], Charging_Stations)
+        ; otherwise -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
         )
-    ; char_code("o", C), FoundType = C -> writeln("Found o continuing"), find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
-    ),
-    writeln("err").
+    ; char_code("o", C), FoundType = C -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+    ).
 
 
 
 agent_do_partial_moves([], _, _).
 agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
-    writeln(NextPos),
     agent_do_moves(oscar, [NextPos]),
     findall(F, map_adjacent(NextPos, _, F), Fs),
-    ( memberchk(c(ID), Fs) -> writeln("c"), FoundID is ID, FoundType is "c"
-    ; memberchk(o(ID), Fs) -> writeln("o"), FoundID is ID, FoundType is "o"
+    ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType is "c"
+    ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType is "o"
     ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
     ).
 
