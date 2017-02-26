@@ -106,7 +106,28 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
     ; char_code("o", C), FoundType = C -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
     ).
 
+nearest_charging_station(Pos, ChargingStationPos) :-
+    % TODO
 
+
+agent_pick_task(Task, Task, c). % True if going to a charging station
+agent_pick_task(Task, NewTask, o) :- % If going to an oracle at known position
+    Task = go(Pos),
+    current_energy(E),
+    agent_current_position(CurPos),
+    map_distance(CurPos, Pos, EstimatedCostToOracle),
+    nearest_charging_station(Pos, OracleChargingStationPos),
+    map_distance(Pos, OracleChargingStationPos, EstimatedCostFromOracleToCharging),
+    ( EstimatedCostToOracle + EstimatedCostFromOracleToCharging + 10 < 80 -> Task is New Task
+    ; otherwise -> nearest_charging_station(CurPos, ChargingStationPos), NewTask is go(ChargingStationPos)
+    ).
+agent_pick_task(Task, NewTask, o) :- % If going to an oracle at an unknown position
+    Task = find(_),
+    current_energy(E),
+    agent_current_position(CurPos),
+    ( E < 100   -> nearest_charging_station(CurPos, ChargingStationPos), NewTask is go(ChargingStationPos)
+    ; otherwise -> NewTask is Task
+    ).
 
 agent_do_partial_moves([], _, _).
 agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
@@ -116,7 +137,6 @@ agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
     ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType is "o"
     ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
     ).
-
 
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 solve_task_4(Task,Cost) :-
