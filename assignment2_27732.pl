@@ -16,7 +16,7 @@ solve_task_1_3(Task,Cost) :- % NOTE OLD
 solve_task_1_3_new(Task, Cost) :- % TODO update name
   agent_current_position(oscar, Pos),
   calc_fvalue(Task, Pos, 0, FCost),
-  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),
+  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
   agent_do_moves(oscar,Path).
 
@@ -60,9 +60,73 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
   map_distance(Pos, TargetPos, HCost),
   FCost is GCost + HCost.
 
+%%%%%%%%%% Part 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% find_identity(A) :-
+%   % Initially all actors are suspects
+%   findall(PotentialActor, actor(PotentialActor), PotentialActors),
+%   find_identity(A, PotentialActors),!.
+%
+% find_identity(Actor, [Actor]). % Return when we have one answer
+% find_identity(Actor, PotentialActors) :-
+%   Charging_Stations is [(1, PosC1), (2, PosC2)],
+%   find_charging_station_positions([1, 2]),
+%   agent_ask_oracle(oscar, o(1), link, Link),
+%   actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
+%   find_identity(Actor, ReducedPotentialActors).
+%
+%   % Finds list of actors containg Link from Actors list, effectivly map reduce
+% actors_with_link(_, [], ActorsWithLink, ActorsWithLink). % Once list exhausted
+% actors_with_link(Link, [Actor|Actors], WorkingActorsWithLink, ActorsWithLink) :-
+%     wp(Actor, WT),
+%     findall(X, wt_link(WT, X), Links),
+%     ( memberchk(Link, Links) -> actors_with_link(Link, Actors, [Actor|WorkingActorsWithLink], ActorsWithLink)
+%     ; otherwise              -> actors_with_link(Link, Actors, WorkingActorsWithLink, ActorsWithLink)
+%     ).
+%
+% % Return the pos found by a star
+move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
+  agent_current_position(oscar, Pos),
+  writeln(Task),
+  calc_fvalue(Task, Pos, 0, FCost),
+  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
+  reverse(ReversedPath, [_Init|Path]),
+  agent_do_partial_moves(Path, FoundID, FoundType).
+
+% Find the positions of the charging stations
+find_charging_station_positions([], Charging_Stations, Charging_Stations).
+find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations) :-
+    Unvisited_Charging_Stations = [Next_Charging_Station|CSs],
+    writeln("Looking for " + Next_Charging_Station),
+    move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
+    writeln("Found for " + FoundID + " of type " + FoundType),
+    agent_current_position(oscar, Pos),
+    % TODO Compare type + remove from CS
+    writeln("FAiling"),
+    ( char_code("c", C), FoundType = C ->
+        ( \+ memberchk(FoundID, CSs)          -> writeln("Found a different cs along the way"), find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+        ; FoundID = Next_Charging_Station -> writeln("Located cs"), find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations)
+        ; FoundID \= Next_Charging_Station -> writeln("Found cs which has already been seen"), delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations)
+        )
+    ; char_code("o", C), FoundType = C -> writeln("Found o continuing"), find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+    ),
+    writeln("err").
+
+
+
+agent_do_partial_moves([], _, _).
+agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
+    writeln(NextPos),
+    agent_do_moves(oscar, [NextPos]),
+    findall(F, map_adjacent(NextPos, _, F), Fs),
+    ( memberchk(c(ID), Fs) -> writeln("c"), FoundID is ID, FoundType is "c"
+    ; memberchk(o(ID), Fs) -> writeln("o"), FoundID is ID, FoundType is "o"
+    ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
+    ).
+
 
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-solve_task_4(Task,Cost):-
+solve_task_4(Task,Cost) :-
   my_agent(Agent),
   query_world( agent_current_position, [Agent,P] ),
   solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
@@ -73,9 +137,6 @@ solve_task_4(Task,Cost):-
 
 %%%%%%%%%% Useful predicates %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% backtracking depth-first search, needs to be changed to agenda-based A*
-solve_task_bt(Task,Current,Depth,RPath,[cost(Cost),depth(Depth)],NewPos) :-
-  
-
 solve_task_bt(Task,Current,Depth,RPath,[cost(Cost),depth(Depth)],NewPos) :-
   achieved(Task,Current,RPath,Cost,NewPos).
 solve_task_bt(Task,Current,D,RR,Cost,NewPos) :-
