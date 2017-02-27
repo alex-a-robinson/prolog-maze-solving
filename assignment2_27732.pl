@@ -124,30 +124,33 @@ find_next_oracle(Pos, Unvisted_Oracles_With_Known_Pos, _, Task) :-
   closest_position(Pos, Unvisted_Oracles_With_Known_Pos, Next_Oracle),
   Task = go(Next_Oracle).
 
-% agent_pick_task(go(Pos), Task, c). % True if going to a charging station
-% agent_pick_task(Task, NewTask, o) :- % If going to an oracle at known position
-%     Task = go(Pos),
-%     current_energy(E),
-%     agent_current_position(CurPos),
-%     map_distance(CurPos, Pos, EstimatedCostToOracle),
-%     nearest_charging_station(Pos, OracleChargingStationPos),
-%     map_distance(Pos, OracleChargingStationPos, EstimatedCostFromOracleToCharging),
-%     ( EstimatedCostToOracle + EstimatedCostFromOracleToCharging + 10 < 80 -> Task is New Task
-%     ; otherwise -> nearest_charging_station(CurPos, ChargingStationPos), NewTask is go(ChargingStationPos)
-%     ).
-% agent_pick_task(Task, NewTask, o) :- % If going to an oracle at an unknown position
-%     Task = find(_),
-%     current_energy(E),
-%     agent_current_position(CurPos),
-%     ( E < 100   -> nearest_charging_station(CurPos, ChargingStationPos), NewTask is go(ChargingStationPos)
-%     ; otherwise -> NewTask is Task
-%     ).
+agent_pick_task(go(TaskPos), NewTask, c, _) :- % True if going to a charging station
+  NewTask = go(TaskPos).
+agent_pick_task(go(Pos), NewTask, o, Charging_Stations) :- % If going to an oracle at known position
+    agent_current_energy(oscar, E),
+    agent_current_position(oscar, CurPos),
+    map_distance(CurPos, Pos, EstimatedCostToOracle),
+    closest_position(Pos, Charging_Stations, OracleChargingStationPos),
+    map_distance(Pos, OracleChargingStationPos, EstimatedCostFromOracleToCharging),
+    Cost is (EstimatedCostToOracle + EstimatedCostFromOracleToCharging + 10),
+    writeln("It will cost " + Cost + " to do " + go(Pos) + " including going to a charging station after"),
+    writeln("Costs " + EstimatedCostToOracle + " to oracle, " + EstimatedCostFromOracleToCharging + " from oracle to " + OracleChargingStationPos),
+
+    ( Cost < (E - 15) -> NewTask = go(Pos)
+    ; otherwise -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
+    ).
+agent_pick_task(find(T), NewTask, o, Charging_Stations) :- % If going to an oracle at an unknown position
+    agent_current_energy(oscar, E),
+    agent_current_position(oscar, CurPos),
+    ( E < 100   -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
+    ; otherwise -> NewTask = find(T)
+    ).
 
 
 
 % solve_task_3() :-
 %   agent_current_position(oscar, Pos),
-%   find_charging_station_positions(Pos, [1,2], Charging_Stations),
+%   find_charging_station_positions(Pos, [1,2], Charging_S tations),
 %
 %   Unvisted_Oracles is [1,2,3,4,5,6,7,8,9,10],
 %   Unvisted_Oracles_With_Known_Pos is [],
