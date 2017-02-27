@@ -106,6 +106,14 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
     ; char_code("o", C), FoundType = C -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
     ).
 
+% TODO Clean up
+closest_position(Pos, CSs, ClosestPos) :- closest_position(Pos, CSs, 9999, p(0,0), ClosestPos), !.
+closest_position(_, [], _, Out, Out).
+closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
+  map_distance(Pos, CS, Cost),
+  ( Cost < CurrentClosestCost -> closest_position(Pos, CSs, Cost, CS, Out)
+  ; otherwise -> closest_position(Pos, CSs, CurrentClosestCost, ClosestPos, Out)
+  ).
 
 
 % agent_pick_task(go(Pos), Task, c). % True if going to a charging station
