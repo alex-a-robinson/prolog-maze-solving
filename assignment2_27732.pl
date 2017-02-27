@@ -116,6 +116,14 @@ closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
   ).
 
 
+% Once an oracle has been queried remove the oracle from the list until then keep it
+% Should run with ! to return 1 value for Next_Oracle
+find_next_oracle(_, [], [], go(exit)).
+find_next_oracle(_, [], [Next_ID|_], find(o(Next_ID))).
+find_next_oracle(Pos, Unvisted_Oracles_With_Known_Pos, _, Task) :-
+  closest_position(Pos, Unvisted_Oracles_With_Known_Pos, Next_Oracle),
+  Task = go(Next_Oracle).
+
 % agent_pick_task(go(Pos), Task, c). % True if going to a charging station
 % agent_pick_task(Task, NewTask, o) :- % If going to an oracle at known position
 %     Task = go(Pos),
@@ -134,6 +142,26 @@ closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
 %     ( E < 100   -> nearest_charging_station(CurPos, ChargingStationPos), NewTask is go(ChargingStationPos)
 %     ; otherwise -> NewTask is Task
 %     ).
+
+
+
+% solve_task_3() :-
+%   agent_current_position(oscar, Pos),
+%   find_charging_station_positions(Pos, [1,2], Charging_Stations),
+%
+%   Unvisted_Oracles is [1,2,3,4,5,6,7,8,9,10],
+%   Unvisted_Oracles_With_Known_Pos is [],
+%   find_next_oracle(Pos, Unvisted_Oracles_With_Known_Pos, Unvisted_Oracles, Task)
+%   agent_pick_task(Task, NewTask, ?),
+
+
+
+  % % No oracles or charging stations found on the way
+  % move_to_task(Task, Cost, FoundID, FoundType),
+  %
+  % % query the oracle
+  % do_action(Task, FoundID, FoundType). %
+
 
 agent_do_partial_moves([], _, _).
 agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
