@@ -90,7 +90,7 @@ move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
-  agent_do_partial_moves(Path, FoundID, FoundType).
+  agent_do_partial_moves(Path, FoundID, FoundType),!.
 
 % Find the positions of the charging stations
 find_charging_station_positions([], Charging_Stations, Charging_Stations).
@@ -115,6 +115,15 @@ closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
   ; otherwise -> closest_position(Pos, CSs, CurrentClosestCost, ClosestPos, Out)
   ).
 
+
+agent_do_partial_moves([], _, _).
+agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
+  agent_do_moves(oscar, [NextPos]),
+  findall(F, map_adjacent(NextPos, _, F), Fs),
+  ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
+  ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
+  ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
+  ),!.
 
 % Once an oracle has been queried remove the oracle from the list until then keep it
 % Should run with ! to return 1 value for Next_Oracle
@@ -189,17 +198,40 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
 solve_task_3(Actor) :-
     % TODO update positions of oracles when looking for charging stations and in do action
     find_charging_station_positions([1,2], [], CS),
+    writeln("Starting solve task executing:  " ),
     UO = [(1, false), (2, false), (3, false), (4, false), (5, false), (6, false), (7, false), (8, false), (9, false), (10, false)],
     findall(PotentialActor, actor(PotentialActor), PotentialActors),
     solve_task_3(Actor, PotentialActors, UO, CS),!.
 
 solve_task_3(Actor, [Actor], _, _).
 solve_task_3(Actor, PotentialActors, UO, CSs) :-
+    writeln("Starting solve task executing:  " ),
+    writeln("PotentialActors:  " + PotentialActors ),
+    writeln("UO:  " + UO ),
+
+    writeln("Finding next Oracle executing: " + UO),
     find_next_oracle(UO, ProposedTask),!,
+    writeln("unqueried oracles " + UO),
+
+
+    writeln("anget_pick_task:  " ),
     agent_pick_task(ProposedTask, Task, CSs),
+    writeln("Proposed Task: " + ProposedTask ),
+    writeln("New Task: " + Task ),
+    writeln("Charging stations:  " + CSs ),
+
+    writeln("move_to_task:  " ),
     move_to_task(Task, _, OID, OType),
+    writeln("OID:  " + OID ),
+    writeln("OType:  " + OType ),
+
+    writeln("do_action executing:  " ),
     do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors),
+    writeln("------------------------ NEXT ITERATION --------------------------"),
+    flush_output,
     solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs).
+
+
 
 %%%%
 
@@ -225,14 +257,7 @@ solve_task_3(Actor, PotentialActors, UO, CSs) :-
   % do_action(Task, FoundID, FoundType). %
 
 
-agent_do_partial_moves([], _, _).
-agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
-    agent_do_moves(oscar, [NextPos]),
-    findall(F, map_adjacent(NextPos, _, F), Fs),
-    ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType is "c"
-    ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType is "o"
-    ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
-    ).
+
 
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 solve_task_4(Task,Cost) :-
