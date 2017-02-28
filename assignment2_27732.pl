@@ -118,15 +118,31 @@ closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
 
 % Once an oracle has been queried remove the oracle from the list until then keep it
 % Should run with ! to return 1 value for Next_Oracle
-find_next_oracle(_, [], [], go(exit)).
-find_next_oracle(_, [], [Next_ID|_], find(o(Next_ID))).
-find_next_oracle(Pos, Unvisted_Oracles_With_Known_Pos, _, Task) :-
-  closest_position(Pos, Unvisted_Oracles_With_Known_Pos, Next_Oracle),
-  Task = go(Next_Oracle).
+% TODO make work with one list
+% find_next_oracle([], go(exit)).
+% find_next_oracle([], [Next_ID|_], find(o(Next_ID))).
+% find_next_oracle(Unvisted_Oracles_With_Known_Pos, _, Task) :-
+%   agent_current_position(oscar, Pos),
+%   closest_position(Pos, Unvisted_Oracles_With_Known_Pos, Next_Oracle),
+%   Task = go(Next_Oracle).
+%
 
-agent_pick_task(go(TaskPos), NewTask, c, _) :- % True if going to a charging station
-  NewTask = go(TaskPos).
-agent_pick_task(go(Pos), NewTask, o, Charging_Stations) :- % If going to an oracle at known position
+find_next_oracle([], go(exit)). % Exit if no oracles left
+find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first unvisited ID
+    \+ memberchk((_, p(_,_)), UO), % if There are no oracles with known positions
+    UO = [(ID, _)|_],
+    Task = find(o(ID)).
+find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first unvisited ID
+    findall(
+        Pos,
+        (member((_, Pos), UO), Pos = p(_,_)),
+        Poss
+    ),
+    agent_current_position(oscar, CurPos),
+    closest_position(CurPos, Poss, ClosestPos),
+    Task = go(ClosestPos).
+
+agent_pick_task(go(Pos), NewTask, Charging_Stations) :- % If going to an oracle at known position
     agent_current_energy(oscar, E),
     agent_current_position(oscar, CurPos),
     map_distance(CurPos, Pos, EstimatedCostToOracle),
@@ -139,15 +155,26 @@ agent_pick_task(go(Pos), NewTask, o, Charging_Stations) :- % If going to an orac
     ( Cost < (E - 15) -> NewTask = go(Pos)
     ; otherwise -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ).
-agent_pick_task(find(T), NewTask, o, Charging_Stations) :- % If going to an oracle at an unknown position
+agent_pick_task(find(T), NewTask, Charging_Stations) :- % If going to an oracle at an unknown position
     agent_current_energy(oscar, E),
     agent_current_position(oscar, CurPos),
     ( E < 100   -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ; otherwise -> NewTask = find(T)
     ).
 
+do_action(_, _, go(exit), _, _, _, _, _) :- false.
 do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors) :- writeln('update energy'), agent_topup_energy(oscar, c(ObjectID)).
-do_action(Charging_Stations, UO, Task, _, o, UO, PotentialActors, PotentialActors) :- Task = go(Pos), memberchk(Pos, Charging_Stations). % Heading to a charging station, ignore
+do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, PotentialActors) :-
+    Task = go(Pos), memberchk(Pos, Charging_Stations), % Heading to a charging station, ignore
+    (memberchk((ObjectID, false), UO) ->
+        % potentially change
+        delete(UO, (ObjectID, _), WorkingUpdatedUO),
+        agent_current_position(oscar, CurPos),
+        UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
+    ; otherwise ->
+        UpdatedUO = UO
+    ).
+
 do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors) :- % Heading to an oracle, see another oracle so query
    ( Task = find(o(_))
    ; (Task = go(Pos), \+ memberchk(Pos, Charging_Stations))
@@ -159,6 +186,21 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
    actors_with_link(Link, PotentialActors, [], ReducedPotentialActors).
 
 
+solve_task_3(Actor) :-
+    % TODO update positions of oracles when looking for charging stations and in do action
+    find_charging_station_positions([1,2], [], CS),
+    UO = [(1, false), (2, false), (3, false), (4, false), (5, false), (6, false), (7, false), (8, false), (9, false), (10, false)],
+    findall(PotentialActor, actor(PotentialActor), PotentialActors),
+    solve_task_3(Actor, PotentialActors, UO, CS),!.
+
+solve_task_3(Actor, [Actor], _, _).
+solve_task_3(Actor, PotentialActors, UO, CSs) :-
+    find_next_oracle(UO, ProposedTask),!,
+    agent_pick_task(ProposedTask, Task, CSs),
+    move_to_task(Task, _, OID, OType),
+    do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors),
+    solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs).
+
 %%%%
 
 
@@ -167,7 +209,7 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
 
 % solve_task_3() :-
 %   agent_current_position(oscar, Pos),
-%   find_charging_station_positions(Pos, [1,2], Charging_S tations),
+%   find_charging_station_positions(Pos, [1,2], Charging_Stations),
 %
 %   Unvisted_Oracles is [1,2,3,4,5,6,7,8,9,10],
 %   Unvisted_Oracles_With_Known_Pos is [],
