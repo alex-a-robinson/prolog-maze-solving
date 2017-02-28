@@ -146,7 +146,39 @@ agent_pick_task(find(T), NewTask, o, Charging_Stations) :- % If going to an orac
     ; otherwise -> NewTask = find(T)
     ).
 
+do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors) :- agent_topup_energy(oscar, c(ObjectID)).
+do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors) :-
+  ( Task = go(Pos), \= memberchk(Pos, Charging_Stations)
+  ; Task = find(o(_))
+  ),
+   agent_ask_oracle(oscar, o(ObjectID), link, Link),
+   actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
+   delete(UO, (ObjectID, _), UpdatedUO).
 
+%%%%
+
+find_identity(A) :-
+  % Initially all actors are suspects
+  findall(PotentialActor, actor(PotentialActor), PotentialActors),
+  find_identity(A, PotentialActors),!.
+
+find_identity(Actor, [Actor]). % Return when we have one answer
+find_identity(Actor, PotentialActors) :-
+  agent_ask_oracle(oscar, o(1), link, Link),
+  actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
+  find_identity(Actor, ReducedPotentialActors).
+
+% Finds list of actors containg Link from Actors list, effectivly map reduce
+actors_with_link(_, [], ActorsWithLink, ActorsWithLink). % Once list exhausted
+actors_with_link(Link, [Actor|Actors], WorkingActorsWithLink, ActorsWithLink) :-
+  wp(Actor, WT),
+  findall(X, wt_link(WT, X), Links),
+  ( memberchk(Link, Links) -> actors_with_link(Link, Actors, [Actor|WorkingActorsWithLink], ActorsWithLink)
+  ; otherwise              -> actors_with_link(Link, Actors, WorkingActorsWithLink, ActorsWithLink)
+  ).
+
+
+%%%%
 
 % solve_task_3() :-
 %   agent_current_position(oscar, Pos),
