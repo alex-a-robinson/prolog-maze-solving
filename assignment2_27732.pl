@@ -89,6 +89,16 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 % % Return the pos found by a star
 
 
+agent_do_partial_moves([], _, _).
+agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
+  agent_do_moves(oscar, [NextPos]),
+  findall(F, map_adjacent(NextPos, _, F), Fs),
+  ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
+  ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
+  ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
+  ),!.
+
+
 % Given a task do the move and return the foundID and FoundType
 move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   agent_current_position(oscar, Pos),
@@ -123,16 +133,6 @@ closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
   ( Cost < CurrentClosestCost -> closest_position(Pos, CSs, Cost, CS, Out)
   ; otherwise -> closest_position(Pos, CSs, CurrentClosestCost, ClosestPos, Out)
   ).
-
-
-agent_do_partial_moves([], _, _).
-agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
-  agent_do_moves(oscar, [NextPos]),
-  findall(F, map_adjacent(NextPos, _, F), Fs),
-  ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
-  ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
-  ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
-  ),!.
 
 find_next_oracle([], go(exit)). % Exit if no oracles left
 find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first unvisited ID
