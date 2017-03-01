@@ -1,3 +1,5 @@
+
+
 candidate_number(27732).
 
 solve_task(Task,Cost) :-
@@ -85,25 +87,32 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 %     ).
 %
 % % Return the pos found by a star
+
+
+% Given a task do the move and return the foundID and FoundType
 move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   agent_current_position(oscar, Pos),
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
-  agent_do_partial_moves(Path, FoundID, FoundType),!.
+  agent_do_partial_moves(Path, FoundID, FoundType),
+  writeln("FoundID"+ FoundID),
+  writeln("FoundType"+ FoundType),!.
 
 % Find the positions of the charging stations
 find_charging_station_positions([], Charging_Stations, Charging_Stations).
 find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations) :-
     Unvisited_Charging_Stations = [Next_Charging_Station|CSs],
+
+    % move_to_task(Task, Cost, FoundID, FoundType)
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
     agent_current_position(oscar, Pos),
-    ( char_code("c", C), FoundType = C ->
+    ( FoundType = c ->
         ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations)
         ; FoundID = Next_Charging_Station  -> find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations)
         ; otherwise -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
         )
-    ; char_code("o", C), FoundType = C -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+    ; FoundType = o -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
     ).
 
 % TODO Clean up
@@ -124,17 +133,6 @@ agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
   ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
   ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
   ),!.
-
-% Once an oracle has been queried remove the oracle from the list until then keep it
-% Should run with ! to return 1 value for Next_Oracle
-% TODO make work with one list
-% find_next_oracle([], go(exit)).
-% find_next_oracle([], [Next_ID|_], find(o(Next_ID))).
-% find_next_oracle(Unvisted_Oracles_With_Known_Pos, _, Task) :-
-%   agent_current_position(oscar, Pos),
-%   closest_position(Pos, Unvisted_Oracles_With_Known_Pos, Next_Oracle),
-%   Task = go(Next_Oracle).
-%
 
 find_next_oracle([], go(exit)). % Exit if no oracles left
 find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first unvisited ID
@@ -207,7 +205,6 @@ solve_task_3(Actor, [Actor], _, _).
 solve_task_3(Actor, PotentialActors, UO, CSs) :-
     writeln("Starting solve task executing:  " ),
     writeln("PotentialActors:  " + PotentialActors ),
-    writeln("UO:  " + UO ),
 
     writeln("Finding next Oracle executing: " + UO),
     find_next_oracle(UO, ProposedTask),!,
