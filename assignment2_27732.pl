@@ -149,7 +149,8 @@ find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first u
     closest_position(CurPos, Poss, ClosestPos),
     Task = go(ClosestPos).
 
-agent_pick_task(go(Pos), NewTask, Charging_Stations) :- % If going to an oracle at known position
+agent_pick_task(Task, Task, _, 0). % Use the same task if no reevalutation
+agent_pick_task(go(Pos), NewTask, Charging_Stations, 1) :- % If going to an oracle at known position
     agent_current_energy(oscar, E),
     agent_current_position(oscar, CurPos),
     map_distance(CurPos, Pos, EstimatedCostToOracle),
@@ -162,20 +163,20 @@ agent_pick_task(go(Pos), NewTask, Charging_Stations) :- % If going to an oracle 
     ( Cost < (E - 15) -> NewTask = go(Pos)
     ; otherwise -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ).
-agent_pick_task(find(T), NewTask, Charging_Stations) :- % If going to an oracle at an unknown position
+agent_pick_task(find(T), NewTask, Charging_Stations, 1) :- % If going to an oracle at an unknown position
     agent_current_energy(oscar, E),
     agent_current_position(oscar, CurPos),
     ( E < 100   -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ; otherwise -> NewTask = find(T)
     ).
 
-do_action(_, _, go(exit), _, _, _, _, _) :- false.
-do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors) :- writeln('update energy'), agent_topup_energy(oscar, c(ObjectID)).
+do_action(_, _, go(exit), _, _, _, _, _, 1) :- false.
 
-
-do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, PotentialActors) :-
+do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- writeln('update energy'), agent_topup_energy(oscar, c(ObjectID)).
+do_action(Charging_Stations, UO, go(Pos), ObjectID, o, UpdatedUO, PotentialActors, PotentialActors, 1) :-
     writeln("Inside do_action: oracle found, checking if agent is moving to charging station"),
-    Task = go(Pos), writeln(\+ memberchk(Pos, Charging_Stations)), \+ memberchk(Pos, Charging_Stations),% Heading to a charging station, ignore
+    memberchk(Pos, Charging_Stations),% Heading to a charging station, ignore
+    writeln("Pos is a charging_station"),
     ( memberchk((ObjectID, _), UO) ->
         writeln("oracle in unqueried list"),
         % potentially change
@@ -184,19 +185,26 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
         UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
     ; otherwise ->
         writeln("have already queried oracle, returning true"),
-        UpdatedUO = UO,
-        true
+        UpdatedUO = UO
     ).
-
-do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors) :- % Heading to an oracle, see another oracle so query
+do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors, Reevaluate) :- % Heading to an oracle, see another oracle so query
+   writeln("task is find(o) or go(Pos)"),
    ( Task = find(o(_))
    ; (Task = go(Pos), \+ memberchk(Pos, Charging_Stations))
    ),
-   memberchk((ObjectID, _), UO),
-   writeln('asking oracle'),
-   agent_ask_oracle(oscar, o(ObjectID), link, Link),
-   delete(UO, (ObjectID, _), UpdatedUO),
-   actors_with_link(Link, PotentialActors, [], ReducedPotentialActors).
+   writeln("Object in unvisted"),
+   ( memberchk((ObjectID, _), UO) ->
+      writeln('asking oracle'),
+      agent_ask_oracle(oscar, o(ObjectID), link, Link),
+      delete(UO, (ObjectID, _), UpdatedUO),
+      actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
+      Reevaluate = 1
+    ; otherwise ->
+      writeln("have already queried oracle, returning true"),
+      UpdatedUO = UO,
+      ReducedPotentialActors = PotentialActors,
+      Reevaluate = 0 % Don't re-evaluate, this stops a loop where searching for an oracles, comes across a discovered oracle, and returning to a charging station only to come across the discocered oracle again
+    ).
 
 
 solve_task_3(Actor) :-
@@ -205,10 +213,10 @@ solve_task_3(Actor) :-
     writeln("Starting solve task executing:  " ),
     UO = [(1, false), (2, false), (3, false), (4, false), (5, false), (6, false), (7, false), (8, false), (9, false), (10, false)],
     findall(PotentialActor, actor(PotentialActor), PotentialActors),
-    solve_task_3(Actor, PotentialActors, UO, CS),!.
+    solve_task_3(Actor, PotentialActors, UO, CS, 1),!.
 
-solve_task_3(Actor, [Actor], _, _).
-solve_task_3(Actor, PotentialActors, UO, CSs) :-
+solve_task_3(Actor, [Actor], _, _, _).
+solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
     writeln("Starting solve task executing:  " ),
     writeln("PotentialActors:  " + PotentialActors ),
 
@@ -216,23 +224,21 @@ solve_task_3(Actor, PotentialActors, UO, CSs) :-
     find_next_oracle(UO, ProposedTask),!,
 
     writeln("anget_pick_task:  " ),
-    agent_pick_task(ProposedTask, Task, CSs),
+    agent_pick_task(ProposedTask, Task, CSs, Reevaluate),
     writeln("Proposed Task: " + ProposedTask ),
     writeln("New Task: " + Task ),
     writeln("Charging stations:  " + CSs ),
 
     writeln("move_to_task:  " ),
     move_to_task(Task, _, OID, OType),
-    writeln("Task" + Task),
     writeln("OID:  " + OID ),
     writeln("OType:  " + OType ),
 
     writeln("do_action executing:  " ),
-    do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors),
+    do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors, NewReevaluate),
     writeln("------------------------ NEXT ITERATION --------------------------"),
     flush_output,
-    solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs).
-
+    solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs, NewReevaluate).
 
 
 %%%%
