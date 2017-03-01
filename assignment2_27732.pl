@@ -171,15 +171,21 @@ agent_pick_task(find(T), NewTask, Charging_Stations) :- % If going to an oracle 
 
 do_action(_, _, go(exit), _, _, _, _, _) :- false.
 do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors) :- writeln('update energy'), agent_topup_energy(oscar, c(ObjectID)).
+
+
 do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, PotentialActors) :-
-    Task = go(Pos), memberchk(Pos, Charging_Stations), % Heading to a charging station, ignore
-    (memberchk((ObjectID, false), UO) ->
+    writeln("Inside do_action: oracle found, checking if agent is moving to charging station"),
+    Task = go(Pos), writeln(\+ memberchk(Pos, Charging_Stations)), \+ memberchk(Pos, Charging_Stations),% Heading to a charging station, ignore
+    ( memberchk((ObjectID, _), UO) ->
+        writeln("oracle in unqueried list"),
         % potentially change
         delete(UO, (ObjectID, _), WorkingUpdatedUO),
         agent_current_position(oscar, CurPos),
         UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
     ; otherwise ->
-        UpdatedUO = UO
+        writeln("have already queried oracle, returning true"),
+        UpdatedUO = UO,
+        true
     ).
 
 do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors) :- % Heading to an oracle, see another oracle so query
@@ -208,8 +214,6 @@ solve_task_3(Actor, PotentialActors, UO, CSs) :-
 
     writeln("Finding next Oracle executing: " + UO),
     find_next_oracle(UO, ProposedTask),!,
-    writeln("unqueried oracles " + UO),
-
 
     writeln("anget_pick_task:  " ),
     agent_pick_task(ProposedTask, Task, CSs),
@@ -219,6 +223,7 @@ solve_task_3(Actor, PotentialActors, UO, CSs) :-
 
     writeln("move_to_task:  " ),
     move_to_task(Task, _, OID, OType),
+    writeln("Task" + Task),
     writeln("OID:  " + OID ),
     writeln("OType:  " + OType ),
 

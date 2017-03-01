@@ -48,5 +48,12 @@ Find(type(id)):
 6. Check if identity found and quit else and reevaluate (Go To 3.)
 
 
+---------- BUGS FOUND-----------
+
+- Found oracle which has already been queried but then returns false and stops executing
+
+
+
+----------TODO----------------
 
   % No oracles or charging stations found on the way
