@@ -110,19 +110,31 @@ move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   writeln("FoundType"+ FoundType),!.
 
 % Find the positions of the charging stations
-find_charging_station_positions([], Charging_Stations, Charging_Stations).
-find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations) :-
+find_charging_station_positions([], Charging_Stations, Charging_Stations, UpdatedUO, UpdatedUO).
+find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, UO, UpdatedUO) :-
     Unvisited_Charging_Stations = [Next_Charging_Station|CSs],
 
     % move_to_task(Task, Cost, FoundID, FoundType)
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
     agent_current_position(oscar, Pos),
     ( FoundType = c ->
-        ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations)
-        ; FoundID = Next_Charging_Station  -> find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations)
-        ; otherwise -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+        ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
+        ; FoundID = Next_Charging_Station  -> find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
+        ; otherwise -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, UO, UpdatedUO)
         )
-    ; FoundType = o -> find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations)
+    ; FoundType = o ->
+      ( memberchk((FoundID, _), UO) ->
+          writeln("Found an unseen oracle"),
+          writeln(UO),
+          delete(UO, (FoundID, _), WorkingUpdatedUO),
+          writeln("deleted"),
+          append([(FoundID,Pos)], WorkingUpdatedUO, WorkingUO),
+          writeln("appened")
+      ; otherwise ->
+          writeln("Have already seen this oracle"),
+          WorkingUO = UO
+      ),
+      find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, WorkingUO, UpdatedUO)
     ).
 
 % TODO Clean up
@@ -209,11 +221,11 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
 
 solve_task_3(Actor) :-
     % TODO update positions of oracles when looking for charging stations and in do action
-    find_charging_station_positions([1,2], [], CS),
-    writeln("Starting solve task executing:  " ),
     UO = [(1, false), (2, false), (3, false), (4, false), (5, false), (6, false), (7, false), (8, false), (9, false), (10, false)],
+    find_charging_station_positions([1,2], [], CS, UO, UpdatedUO),
+    writeln("Starting solve task executing:  " ),
     findall(PotentialActor, actor(PotentialActor), PotentialActors),
-    solve_task_3(Actor, PotentialActors, UO, CS, 1),!.
+    solve_task_3(Actor, PotentialActors, UpdatedUO, CS, 1),!.
 
 solve_task_3(Actor, [Actor], _, _, _).
 solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
