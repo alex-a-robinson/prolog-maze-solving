@@ -13,14 +13,14 @@ solve_task_1_3(Task,Cost) :- % NOTE OLD
   agent_current_position(oscar,P),
   solve_task_bt(Task,[c(0,0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
   reverse(R,[_Init|Path]),
-  agent_do_moves(oscar,Path).
+  query_world(agent_do_moves,[oscar,Path]).
 
 solve_task_1_3_new(Task, Cost) :- % TODO update name
   agent_current_position(oscar, Pos),
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
-  agent_do_moves(oscar,Path).
+  query_world(agent_do_moves,[oscar,Path]).
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -91,7 +91,7 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 
 agent_do_partial_moves([], _, _).
 agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
-  agent_do_moves(oscar, [NextPos]),
+  aquery_world(agent_do_moves,[oscar,[NextPos]]),
   findall(F, map_adjacent(NextPos, _, F), Fs),
   ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
   ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
@@ -101,7 +101,7 @@ agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
 
 % Given a task do the move and return the foundID and FoundType
 move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
-  agent_current_position(oscar, Pos),
+  query_world(agent_current_position,[oscar, Pos]),
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
@@ -116,7 +116,7 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
 
     % move_to_task(Task, Cost, FoundID, FoundType)
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
-    agent_current_position(oscar, Pos),
+    query_world(agent_current_position,[oscar, Pos]),
     ( FoundType = c ->
         ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
         ; FoundID = Next_Charging_Station  -> find_charging_station_positions(CSs, [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
@@ -157,14 +157,14 @@ find_next_oracle(UO, Task) :- % If no oracles with known positions, pick first u
         (member((_, Pos), UO), Pos = p(_,_)),
         Poss
     ),
-    agent_current_position(oscar, CurPos),
+    query_world(agent_current_position,[oscar, CurPos]),
     closest_position(CurPos, Poss, ClosestPos),
     Task = go(ClosestPos).
 
 agent_pick_task(Task, Task, _, 0). % Use the same task if no reevalutation
 agent_pick_task(go(Pos), NewTask, Charging_Stations, 1) :- % If going to an oracle at known position
-    agent_current_energy(oscar, E),
-    agent_current_position(oscar, CurPos),
+    query_world(agent_current_energy,[oscar, E]),
+    query_world(agent_current_position,[oscar, CurPos]),
     map_distance(CurPos, Pos, EstimatedCostToOracle),
     closest_position(Pos, Charging_Stations, OracleChargingStationPos),
     map_distance(Pos, OracleChargingStationPos, EstimatedCostFromOracleToCharging),
@@ -176,15 +176,15 @@ agent_pick_task(go(Pos), NewTask, Charging_Stations, 1) :- % If going to an orac
     ; otherwise -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ).
 agent_pick_task(find(T), NewTask, Charging_Stations, 1) :- % If going to an oracle at an unknown position
-    agent_current_energy(oscar, E),
-    agent_current_position(oscar, CurPos),
+    query_world(agent_current_energy,[oscar, E]),
+    query_world(agent_current_position,[oscar, CurPos]),
     ( E < 100   -> closest_position(CurPos, Charging_Stations, ChargingStationPos), NewTask = go(ChargingStationPos)
     ; otherwise -> NewTask = find(T)
     ).
 
 do_action(_, _, go(exit), _, _, _, _, _, 1) :- false.
 
-do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- writeln('update energy'), agent_topup_energy(oscar, c(ObjectID)).
+do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- writeln('update energy'), query_world(agent_topup_energy,[oscar, c(ObjectID)]).
 do_action(Charging_Stations, UO, go(Pos), ObjectID, o, UpdatedUO, PotentialActors, PotentialActors, 1) :-
     writeln("Inside do_action: oracle found, checking if agent is moving to charging station"),
     memberchk(Pos, Charging_Stations),% Heading to a charging station, ignore
@@ -193,7 +193,7 @@ do_action(Charging_Stations, UO, go(Pos), ObjectID, o, UpdatedUO, PotentialActor
         writeln("oracle in unqueried list"),
         % potentially change
         delete(UO, (ObjectID, _), WorkingUpdatedUO),
-        agent_current_position(oscar, CurPos),
+        query_world(agent_current_position,[oscar, CurPos]),
         UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
     ; otherwise ->
         writeln("have already queried oracle, returning true"),
@@ -207,7 +207,7 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
    writeln("Object in unvisted"),
    ( memberchk((ObjectID, _), UO) ->
       writeln('asking oracle'),
-      agent_ask_oracle(oscar, o(ObjectID), link, Link),
+      query_world(agent_ask_oracle,[oscar, o(ObjectID), link, Link]),
       delete(UO, (ObjectID, _), UpdatedUO),
       actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
       Reevaluate = 1
@@ -275,18 +275,6 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
   %
   % % query the oracle
   % do_action(Task, FoundID, FoundType). %
-
-
-
-
-%%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-solve_task_4(Task,Cost) :-
-  my_agent(Agent),
-  query_world( agent_current_position, [Agent,P] ),
-  solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
-  reverse(R,[_Init|Path]),
-  query_world( agent_do_moves, [Agent,Path] ).
-%%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %%%%%%%%%% Useful predicates %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
