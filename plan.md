@@ -66,8 +66,11 @@ Find(type(id)):
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  1) Cases for:
-    - Obstacles
-    - Agents
-    are detected and reacted to appropriately
+
   2) Crashes after all charging stations have been visited and visiting first oracle
+  3) When obstacle in path returns false;
+
+  4) bug: task is find(o) or go(Pos)
+------------------------ NEXT ITERATION --------------------------
+          Actor Found +_35410
+          true.
