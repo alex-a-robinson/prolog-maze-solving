@@ -97,11 +97,20 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 %   query_world( agent_do_moves, [Agent,Path] ).
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% NOTE: Only checks for obsticale or another agent in the way
+agent_path_free(_, []).
+agent_path_free(CurPos, [NextPos|_]) :-
+    map_adjacent(CurPos, NextPos, Type),
+    (Type == empty; Type == c(_); Type == o(_)).
 
+%obsticle.
 
 agent_do_partial_moves([], _, _).
 agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
   my_agent(Agent),!,
+  (\+ agent_path_free(NextPos, Path) -> FoundID is 0, FoundType = obsticle
+  ; otherwise -> true
+  ),
   query_world(agent_do_moves,[Agent,[NextPos]]),
   findall(F, map_adjacent(NextPos, _, F), Fs),
   ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
@@ -144,6 +153,7 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
           writeln("deleted"),
           append([(FoundID,Pos)], WorkingUpdatedUO, WorkingUO),
           writeln("appened")
+      ; FoundType = obsticle -> true
       ; otherwise ->
           writeln("Have already seen this oracle"),
           WorkingUO = UO
@@ -200,7 +210,7 @@ agent_pick_task(find(T), NewTask, Charging_Stations, 1) :- % If going to an orac
     ).
 
 do_action(_, _, go(exit), _, _, _, _, _, 1) :- false.
-
+do_action(_, UO, _, _, obsticle, UO, PotentialActors, PotentialActors, _).
 do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- my_agent(Agent),!,writeln('update energy'), query_world(agent_topup_energy,[Agent, c(ObjectID)]).
 do_action(Charging_Stations, UO, go(Pos), ObjectID, o, UpdatedUO, PotentialActors, PotentialActors, 1) :-
     my_agent(Agent),!,
@@ -275,10 +285,14 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
 
 %%%%
 solve_task_4(_Task, _Cost) :-
+<<<<<<< HEAD
   join_game(Agent),
+=======
+  join_game(_Agent),
+>>>>>>> abeb3d73c9eb8370e5debfe18f4e2750139aaf32
   game_predicates:ailp_reset,
   start_game,
-  solve_task_3(Actor).
+  solve_task_3(_Actor).
 
 %%%%
 
