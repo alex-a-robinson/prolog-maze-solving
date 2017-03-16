@@ -285,11 +285,7 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
 
 %%%%
 solve_task_4(_Task, _Cost) :-
-<<<<<<< HEAD
-  join_game(Agent),
-=======
   join_game(_Agent),
->>>>>>> abeb3d73c9eb8370e5debfe18f4e2750139aaf32
   game_predicates:ailp_reset,
   start_game,
   solve_task_3(_Actor).
