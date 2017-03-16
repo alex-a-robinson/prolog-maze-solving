@@ -89,12 +89,12 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 % % Return the pos found by a star
 
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-solve_task_4(Task,Cost) :-
-  my_agent(Agent),
-  query_world( agent_current_position, [Agent,P] ),
-  solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
-  reverse(R,[_Init|Path]),
-  query_world( agent_do_moves, [Agent,Path] ).
+% solve_task_4(Task,Cost) :-
+%   my_agent(Agent),
+%   query_world( agent_current_position, [Agent,P] ),
+%   solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
+%   reverse(R,[_Init|Path]),
+%   query_world( agent_do_moves, [Agent,Path] ).
 %%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -106,6 +106,7 @@ agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
   findall(F, map_adjacent(NextPos, _, F), Fs),
   ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
   ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
+
   ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
   ),!.
 
@@ -260,6 +261,7 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
     writeln("Charging stations:  " + CSs ),
 
     writeln("move_to_task:  " ),
+    % TODO:: May need to change move_to_task
     move_to_task(Task, _, OID, OType),
     writeln("OID:  " + OID ),
     writeln("OType:  " + OType ),
@@ -272,9 +274,9 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
 
 
 %%%%
-
 solve_task_4(_Task, _Cost) :-
   join_game(Agent),
+  game_predicates:ailp_reset,
   start_game,
   solve_task_3(Actor).
 

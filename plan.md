@@ -70,4 +70,4 @@ Find(type(id)):
     - Obstacles
     - Agents
     are detected and reacted to appropriately
-  2) Makes sure it works for the shell
+  2) Crashes after all charging stations have been visited and visiting first oracle
