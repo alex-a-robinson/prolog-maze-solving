@@ -450,7 +450,7 @@ internal_colour_loc(O,p(X,Y)):-
  *
  * Only use predicates exported in module heading in your code!
  */
-referee_queries_path('http://127.0.0.1:8000/agent/queries').
+referee_queries_path('http://127.0.0.1:8000/agent/queries'). % TODO change to 8000
 %referee_queries_path('http://137.222.102.101:8000/agent/queries').
 
 query_world(Pred, Args):-

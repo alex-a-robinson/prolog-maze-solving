@@ -25,7 +25,7 @@ var CommandChannel = (function ($) {
     var agents = [];
 
 	var default_options = {
-		url: "http://127.0.0.1:8001",
+		url: "http://127.0.0.1:8000",
 		type: "POST",
 		interval: 2000, // 2 seconds
 		repeat: 9007199254740992    // MAXINT
@@ -51,7 +51,7 @@ var CommandChannel = (function ($) {
 		}
 	}
 
-	function execute_commands(data, textStatus, jqXHR) {		
+	function execute_commands(data, textStatus, jqXHR) {
 		// parse and execute the array of commands
 		var results = [];
 		var json = $.parseJSON(jqXHR.responseText);
@@ -75,7 +75,7 @@ var CommandChannel = (function ($) {
 				}
 				// package up result with a copy of original command
 				results.push({
-					command: cmd, 
+					command: cmd,
 					result: res
 				});
 			}
@@ -169,4 +169,3 @@ var CommandChannel = (function ($) {
 
 	return my;
 }($));
-

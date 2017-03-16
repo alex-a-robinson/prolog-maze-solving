@@ -57,3 +57,17 @@ Find(type(id)):
 ----------TODO----------------
 
   % No oracles or charging stations found on the way
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%% Part 4 %%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  1) Cases for:
+    - Obstacles
+    - Agents
+    are detected and reacted to appropriately
+  2) Makes sure it works for the shell

@@ -99,7 +99,7 @@ answer_query(Request):-
 %:- http_handler('/agent/commands', get_command, []).
 
 server_host('http://127.0.0.1').
-server_port(8001).
+server_port(8000).
 server_url(Url) :-
   server_host(Host),
   server_port(Port),
