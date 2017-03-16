@@ -101,22 +101,30 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 agent_path_free(_, []).
 agent_path_free(CurPos, [NextPos|_]) :-
     map_adjacent(CurPos, NextPos, Type),
-    (Type == empty; Type == c(_); Type == o(_), writeln("no obsticle/agent found")).
+    (Type == empty; Type == c(_); Type == o(_)).
 
 obsticle.
 
-agent_do_partial_moves([], _, _).
-agent_do_partial_moves([NextPos|Path], FoundID, FoundType) :-
+agent_do_partial_moves([], FoundID, FoundType) :-
   my_agent(Agent),!,
-  (\+ agent_path_free(NextPos, Path) ->
+  query_world( agent_current_position, [Agent, CurPos] ),
+  findall(F, map_adjacent(CurPos, _, F), Fs),
+  ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
+  ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
+  ; otherwise -> writeln("Somethings gone very wrong")
+  ).
+agent_do_partial_moves(Path, FoundID, FoundType) :-
+  Path = [NextPos|Rest],
+  my_agent(Agent),!,
+  query_world( agent_current_position, [Agent, CurPos] ),
+  (\+ agent_path_free(CurPos, Path) ->
     FoundID is 0, FoundType = obsticle, writeln("anget_path_free returned: obsticle found")
   ; otherwise ->
     query_world(agent_do_moves,[Agent,[NextPos]]),
     findall(F, map_adjacent(NextPos, _, F), Fs),
     ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
     ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
-
-    ; otherwise            -> agent_do_partial_moves(Path, FoundID, FoundType)
+    ; otherwise            -> agent_do_partial_moves(Rest, FoundID, FoundType)
     ),!
   ).
 
@@ -129,6 +137,7 @@ move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
   writeln("inside move_to_task: running agent_do_partial_moves"),
+  writeln(Path),
   agent_do_partial_moves(Path, FoundID, FoundType),
   writeln("FoundID"+ FoundID),
   writeln("FoundType"+ FoundType),!.
@@ -141,6 +150,7 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
     my_agent(Agent),!,
     % move_to_task(Task, Cost, FoundID, FoundType)
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
+    writeln("inside find_charging_station_positions"),
     query_world(agent_current_position,[Agent, Pos]),
     ( FoundType = c ->
         ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
@@ -155,13 +165,16 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
           writeln("deleted"),
           append([(FoundID,Pos)], WorkingUpdatedUO, WorkingUO),
           writeln("appened")
-      ; FoundType = obsticle -> writeln("inside find_charging_station_positions: FoundType = obsticle"), WorkingUO = UO
-      ; otherwise ->
-          writeln("Have already seen this oracle"),
-          WorkingUO = UO
-      ),
-      find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, WorkingUO, UpdatedUO)
+        ; otherwise ->
+            writeln("Have already seen this oracle"),
+            WorkingUO = UO
+        ),
+        find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, WorkingUO, UpdatedUO)
+    ; FoundType = obsticle ->
+      writeln("inside find_charging_station_positions: FoundType = obsticle"),
+      find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, UO, UpdatedUO)
     ).
+
 
 % TODO Clean up
 closest_position(Pos, CSs, ClosestPos) :- closest_position(Pos, CSs, 9999, p(0,0), ClosestPos), !.
@@ -219,7 +232,7 @@ do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, 
    my_agent(Agent),!,
    writeln("task is find(o) or go(Pos)"),
    ( Task = go(Pos), memberchk(Pos, Charging_Stations) ->
-       Reevaluate = 1,
+       Reevaluate = 0,
        writeln("Pos is a charging_station"),
        ( memberchk((ObjectID, _), UO) ->
            writeln("oracle in unqueried list"),
@@ -308,6 +321,13 @@ solve_task_4(_Task, _Cost) :-
   start_game,
   solve_task_3(Actor),
   writeln("Actor Found " + Actor).
+
+
+  reset_debug(NewPos) :-
+      my_agent(Agent),
+      agent_current_position(Agent,Pos),
+      retract(ailp_internal(agent_position(Agent, Pos))),
+      assert(ailp_internal(agent_position(Agent, NewPos))).
 
 %%%%
 

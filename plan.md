@@ -70,7 +70,15 @@ Find(type(id)):
   2) Crashes after all charging stations have been visited and visiting first oracle
   3) When obstacle in path returns false;
 
-  4) bug: task is find(o) or go(Pos)
+  4) task is find(o) or go(Pos)
+    updated potential actors+_222636
+    ------------------------ NEXT ITERATION --------------------------
+    Actor Found +_222674
+    true.
+
+
+
+
   5) take into account 1 charging station
 ------------------------ NEXT ITERATION --------------------------
           Actor Found +_35410
