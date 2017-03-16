@@ -295,6 +295,7 @@ solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
 
     writeln("do_action executing:  " ),
     do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors, NewReevaluate),
+    writeln("updated potential actors" + UpdatedPotentialActors),
     writeln("------------------------ NEXT ITERATION --------------------------"),
     flush_output,
     solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs, NewReevaluate).

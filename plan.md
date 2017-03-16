@@ -71,6 +71,7 @@ Find(type(id)):
   3) When obstacle in path returns false;
 
   4) bug: task is find(o) or go(Pos)
+  5) take into account 1 charging station
 ------------------------ NEXT ITERATION --------------------------
           Actor Found +_35410
           true.
