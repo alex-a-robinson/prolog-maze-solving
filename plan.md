@@ -53,6 +53,12 @@ Find(type(id)):
 - Found oracle which has already been queried but then returns false and stops executing
 
 
+TODO:
+- Check each part works
+- Write report
+- Clean up code + comment
+- Rename functions
+
 
 ----------TODO----------------
 
@@ -72,4 +78,17 @@ Find(type(id)):
   3) When obstacle in path returns false;
   4) obstacle moves in front of stored position of charging station
   4) task is find(o) or go(Pos)
-    updated potential actors+
+    updated potential actors+_222636
+    ------------------------ NEXT ITERATION --------------------------
+    Actor Found +_222674
+    true.
+
+  5) take into account 1 charging station
+
+  6) task is find(o) or go(Pos)
+    Object in unvisted
+    asking oracle
+    false.
+------------------------ NEXT ITERATION --------------------------
+          Actor Found +_35410
+          true.

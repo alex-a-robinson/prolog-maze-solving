@@ -9,20 +9,19 @@ solve_task(Task,Cost) :-
   ).
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-solve_task_1_3(Task,Cost) :- % NOTE OLD
-  my_agent(Agent),!,
-  query_world( agent_current_position, [Agent, P] ),
-  solve_task_bt(Task,[c(0,0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
-  reverse(R,[_Init|Path]).
-  % query_world(agent_do_moves,[Agent,Path]).
+% solve_task_1_3_old(Task,Cost) :-
+%   my_agent(Agent),!,
+%   query_world( agent_current_position, [Agent, P] ),
+%   solve_task_bt(Task,[c(0,0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
+%   reverse(R,[_Init|Path]),
+%   query_world(agent_do_moves,[Agent,Path]).
 
-solve_task_1_3_new(Task, Cost) :- % TODO update name
-  my_agent(Agent),!,
-  query_world( agent_current_position, [Agent, Pos] ),
+solve_task_1_3(Task, Cost) :-
+  agent_current_position(oscar, Pos),
   calc_fvalue(Task, Pos, 0, FCost),
-  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
+  solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!, % prune choice point for efficiency
   reverse(ReversedPath, [_Init|Path]),
-  query_world(agent_do_moves,[Agent,Path]).
+  agent_do_moves(oscar,Path).
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -66,38 +65,6 @@ calc_fvalue(go(TargetPos), Pos, GCost, FCost) :-
 
 %%%%%%%%%% Part 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% find_identity(A) :-
-%   % Initially all actors are suspects
-%   findall(PotentialActor, actor(PotentialActor), PotentialActors),
-%   find_identity(A, PotentialActors),!.
-%
-% find_identity(Actor, [Actor]). % Return when we have one answer
-% find_identity(Actor, PotentialActors) :-
-%   Charging_Stations is [(1, PosC1), (2, PosC2)],
-%   find_charging_station_positions([1, 2]),
-%   agent_ask_oracle(oscar, o(1), link, Link),
-%   actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
-%   find_identity(Actor, ReducedPotentialActors).
-%
-%   % Finds list of actors containg Link from Actors list, effectivly map reduce
-% actors_with_link(_, [], ActorsWithLink, ActorsWithLink). % Once list exhausted
-% actors_with_link(Link, [Actor|Actors], WorkingActorsWithLink, ActorsWithLink) :-
-%     wp(Actor, WT),
-%     findall(X, wt_link(WT, X), Links),
-%     ( memberchk(Link, Links) -> actors_with_link(Link, Actors, [Actor|WorkingActorsWithLink], ActorsWithLink)
-%     ; otherwise              -> actors_with_link(Link, Actors, WorkingActorsWithLink, ActorsWithLink)
-%     ).
-%
-% % Return the pos found by a star
-
-%%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% solve_task_4(Task,Cost) :-
-%   my_agent(Agent),
-%   query_world( agent_current_position, [Agent,P] ),
-%   solve_task_bt(Task,[c(0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
-%   reverse(R,[_Init|Path]),
-%   query_world( agent_do_moves, [Agent,Path] ).
-%%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % NOTE: Only checks for obsticale or another agent in the way
 agent_path_free(_, []).
@@ -108,34 +75,26 @@ agent_path_free(CurPos, [NextPos|_]) :-
 obsticle.
 
 agent_do_partial_moves([], FoundID, FoundType) :-
-  writeln("path is empty"),
   my_agent(Agent),!,
   query_world( agent_current_position, [Agent, CurPos] ),
   findall(F, map_adjacent(CurPos, _, F), Fs),
   ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
   ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
-  ; otherwise -> writeln("Somethings gone very wrong")
   ).
 agent_do_partial_moves(Path, FoundID, FoundType) :-
   Path = [NextPos|Rest],
   my_agent(Agent),!,
   query_world( agent_current_position, [Agent, CurPos] ),
-  writeln("inside agent_do_partial_moves: after query world"),
   (\+ agent_path_free(CurPos, Path) ->
-    FoundID is 0, FoundType = obsticle, writeln("anget_path_free returned: obsticle found")
+    FoundID is 0, FoundType = obsticle
   ; otherwise ->
-    writeln("No obstacle"),
-    writeln("Next positin" + NextPos),
     query_world(agent_do_moves,[Agent,[NextPos]]),
-    writeln("after do moves"),
     findall(F, map_adjacent(NextPos, _, F), Fs),
-    writeln("after findall"),
     ( memberchk(c(ID), Fs) -> FoundID is ID, FoundType = c
     ; memberchk(o(ID), Fs) -> FoundID is ID, FoundType = o
-    ; otherwise            -> writeln("empty"),agent_do_partial_moves(Rest, FoundID, FoundType)
+    ; otherwise            -> agent_do_partial_moves(Rest, FoundID, FoundType)
     ),!
   ).
-
 
 % Given a task do the move and return the foundID and FoundType
 move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
@@ -144,11 +103,7 @@ move_to_task(Task, Cost, FoundID, FoundType) :- % TODO update name
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
-  writeln("inside move_to_task: running agent_do_partial_moves"),
-  writeln("Path: " + Path),
-  agent_do_partial_moves(Path, FoundID, FoundType),
-  writeln("FoundID"+ FoundID),
-  writeln("FoundType"+ FoundType),!.
+  agent_do_partial_moves(Path, FoundID, FoundType).
 
 % Find the positions of the charging stations
 find_charging_station_positions([], Charging_Stations, Charging_Stations, UpdatedUO, UpdatedUO).
@@ -157,9 +112,7 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
 
     my_agent(Agent),!,
     % move_to_task(Task, Cost, FoundID, FoundType)
-    writeln("about to move_to_task"),
     move_to_task(find(c(Next_Charging_Station)), _, FoundID, FoundType),
-    writeln("inside find_charging_station_positions"),
     query_world(agent_current_position,[Agent, Pos]),
     ( FoundType = c ->
         ( memberchk(FoundID, CSs)       -> delete(CSs, FoundID, NewCSs), find_charging_station_positions([Next_Charging_Station|NewCSs], [Pos|Working_Charging_Stations], Charging_Stations, UO, UpdatedUO)
@@ -168,24 +121,16 @@ find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_St
         )
     ; FoundType = o ->
       ( memberchk((FoundID, _), UO) ->
-          writeln("Found an unseen oracle"),
-          writeln(UO),
           delete(UO, (FoundID, _), WorkingUpdatedUO),
-          writeln("deleted"),
-          append([(FoundID,Pos)], WorkingUpdatedUO, WorkingUO),
-          writeln("appened")
+          append([(FoundID,Pos)], WorkingUpdatedUO, WorkingUO)
         ; otherwise ->
-            writeln("Have already seen this oracle"),
             WorkingUO = UO
         ),
         find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, WorkingUO, UpdatedUO)
     ; FoundType = obsticle ->
-      writeln("inside find_charging_station_positions: FoundType = obsticle"),
       find_charging_station_positions(Unvisited_Charging_Stations, Working_Charging_Stations, Charging_Stations, UO, UpdatedUO)
     ).
 
-
-% TODO Clean up
 closest_position(Pos, CSs, ClosestPos) :- closest_position(Pos, CSs, 9999, p(0,0), ClosestPos), !.
 closest_position(_, [], _, Out, Out).
 closest_position(Pos, [CS|CSs], CurrentClosestCost, ClosestPos, Out) :-
@@ -232,136 +177,57 @@ agent_pick_task(find(T), NewTask, Charging_Stations, 1) :- % If going to an orac
     ).
 
 do_action(_, _, go(exit), _, _, _, _, _, 1) :- false.
-do_action(_, UO, _, 0, obsticle, UO, PotentialActors, PotentialActors, 1) :-
-  writeln("obsticle found").
-do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- my_agent(Agent),!,writeln('update energy'), query_world(agent_topup_energy,[Agent, c(ObjectID)]).
+do_action(_, UO, _, 0, obsticle, UO, PotentialActors, PotentialActors, 1).
+do_action(_, UO, _, ObjectID, c, UO, PotentialActors, PotentialActors, 1) :- my_agent(Agent),!, query_world(agent_topup_energy,[Agent, c(ObjectID)]).
 do_action(Charging_Stations, UO, Task, ObjectID, o, UpdatedUO, PotentialActors, ReducedPotentialActors, Reevaluate) :- % Heading to an oracle, see another oracle so query
    my_agent(Agent),!,
-   writeln("task is find(o) or go(Pos)"),
    ( Task = go(Pos), memberchk(Pos, Charging_Stations) ->
        Reevaluate = 1,
        ReducedPotentialActors = PotentialActors,
-       writeln("Pos is a charging_station"),
        ( memberchk((ObjectID, _), UO) ->
-           writeln("oracle in unqueried list"),
-           % potentially change
            delete(UO, (ObjectID, _), WorkingUpdatedUO),
            query_world(agent_current_position,[Agent, CurPos]),
            UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
        ; otherwise ->
-           writeln("have already queried oracle, returning true"),
            UpdatedUO = UO
        )
    ; otherwise ->
        ( Task = go(Pos), \+ memberchk(Pos, Charging_Stations)
        ; Task = find(o(_))
        ),
-       writeln("Object in unvisted"),
        ( memberchk((ObjectID, _), UO) ->
-          writeln('asking oracle'),
-          writeln("agent: " + Agent + "ObjectID: " + ObjectID),
           query_world(agent_ask_oracle,[Agent, o(ObjectID), link, Link]),
-          writeln("before delete"),
           delete(UO, (ObjectID, _), UpdatedUO),
-          writeln("after delete"),
           actors_with_link(Link, PotentialActors, [], ReducedPotentialActors),
-          writeln("going wrong!!"),
           Reevaluate = 1
         ; otherwise ->
-          writeln("have already queried oracle, returning true"),
           UpdatedUO = UO,
           ReducedPotentialActors = PotentialActors,
           Reevaluate = 0 % Don't re-evaluate, this stops a loop where searching for an oracles, comes across a discovered oracle, and returning to a charging station only to come across the discocered oracle again
         )
-    ), writeln("end of do_action").
-% do_action(Charging_Stations, UO, go(Pos), ObjectID, o, UpdatedUO, PotentialActors, PotentialActors, 1) :-
-%     my_agent(Agent),!,
-%     writeln("Inside do_action: oracle found, checking if agent is moving to charging station"), %TODO code breaks here, returns false
-%     writeln("Curpos" + Pos),
-%     memberchk(Pos, Charging_Stations),% Heading to a charging station, ignore
-%     writeln("Pos is a charging_station"),
-%     ( memberchk((ObjectID, _), UO) ->
-%         writeln("oracle in unqueried list"),
-%         % potentially change
-%         delete(UO, (ObjectID, _), WorkingUpdatedUO),
-%         query_world(agent_current_position,[Agent, CurPos]),
-%         UpdatedUO = [(ObjectID,CurPos)|WorkingUpdatedUO]
-%     ; otherwise ->
-%         writeln("have already queried oracle, returning true"),
-%         UpdatedUO = UO
-%     ).
+    ).
 
-
-
-solve_task_3(Actor) :-
-    % TODO update positions of oracles when looking for charging stations and in do action
+find_identity(Actor) :-
     UO = [(1, false), (2, false), (3, false), (4, false), (5, false), (6, false), (7, false), (8, false), (9, false), (10, false)],
     find_charging_station_positions([1,2], [], CS, UO, UpdatedUO),
-    writeln("Starting solve task executing:  " ),
     findall(PotentialActor, actor(PotentialActor), PotentialActors),
-    solve_task_3(Actor, PotentialActors, UpdatedUO, CS, 1),!.
+    find_identity(Actor, PotentialActors, UpdatedUO, CS, 1),!.
 
-solve_task_3(Actor, [Actor], _, _, _).
-solve_task_3(Actor, PotentialActors, UO, CSs, Reevaluate) :-
-    writeln("Starting solve task executing:  " ),
-    writeln("PotentialActors:  " + PotentialActors ),
-
-    writeln("Finding next Oracle executing: " + UO),
+find_identity(Actor, [Actor], _, _, _).
+find_identity(Actor, PotentialActors, UO, CSs, Reevaluate) :-
     find_next_oracle(UO, ProposedTask),!,
-
-    writeln("anget_pick_task:  " ),
     agent_pick_task(ProposedTask, Task, CSs, Reevaluate),
-    writeln("Proposed Task: " + ProposedTask ),
-    writeln("New Task: " + Task ),
-
-    writeln("move_to_task:  " ),
-    % TODO:: May need to change move_to_task
     move_to_task(Task, _, OID, OType),
-    writeln("OID:  " + OID ),
-    writeln("OType:  " + OType ),
-
-    writeln("do_action executing:  " ),
     do_action(CSs, UO, Task, OID, OType, UpdatedUO, PotentialActors, UpdatedPotentialActors, NewReevaluate),
-    writeln("updated potential actors" + UpdatedPotentialActors),
-    writeln("------------------------ NEXT ITERATION --------------------------"),
-    flush_output,
-    solve_task_3(Actor, UpdatedPotentialActors, UpdatedUO, CSs, NewReevaluate).
+    find_identity(Actor, UpdatedPotentialActors, UpdatedUO, CSs, NewReevaluate).
 
-
-%%%%
-solve_task_4(_Task, _Cost) :-
+%%%%%%%%%% Part 4 (Optional) %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+solve_task_4(Actor) :-
   join_game(_Agent),
   game_predicates:ailp_reset,
   start_game,
-  solve_task_3(Actor),
+  find_identity(Actor),
   writeln("Actor Found " + Actor).
-
-
-  reset_debug(NewPos) :-
-      my_agent(Agent),
-      agent_current_position(Agent,Pos),
-      retract(ailp_internal(agent_position(Agent, Pos))),
-      assert(ailp_internal(agent_position(Agent, NewPos))).
-
-%%%%
-
-% solve_task_3() :-
-%   agent_current_position(oscar, Pos),
-%   find_charging_station_positions(Pos, [1,2], Charging_Stations),
-%
-%   Unvisted_Oracles is [1,2,3,4,5,6,7,8,9,10],
-%   Unvisted_Oracles_With_Known_Pos is [],
-%   find_next_oracle(Pos, Unvisted_Oracles_With_Known_Pos, Unvisted_Oracles, Task)
-%   agent_pick_task(Task, NewTask, ?),
-
-
-
-  % % No oracles or charging stations found on the way
-  % move_to_task(Task, Cost, FoundID, FoundType),
-  %
-  % % query the oracle
-  % do_action(Task, FoundID, FoundType). %
-
 
 %%%%%%%%%% Useful predicates %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% backtracking depth-first search, needs to be changed to agenda-based A*
