@@ -66,20 +66,23 @@ Find(type(id)):
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+  0) Check if we get tripped
+  1) oracle or charging station unaccesable
   2) Crashes after all charging stations have been visited and visiting first oracle
   3) When obstacle in path returns false;
-
+  4) obstacle moves in front of stored position of charging station
   4) task is find(o) or go(Pos)
     updated potential actors+_222636
     ------------------------ NEXT ITERATION --------------------------
     Actor Found +_222674
     true.
 
-
-
-
   5) take into account 1 charging station
+
+  6) task is find(o) or go(Pos)
+    Object in unvisted
+    asking oracle
+    false.
 ------------------------ NEXT ITERATION --------------------------
           Actor Found +_35410
           true.
