@@ -10,17 +10,19 @@ solve_task(Task,Cost) :-
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 solve_task_1_3(Task,Cost) :- % NOTE OLD
-  agent_current_position(oscar,P),
+  my_agent(Agent),!,
+  query_world( agent_current_position, [Agent, P] ),
   solve_task_bt(Task,[c(0,0,P),P],0,R,Cost,_NewPos),!,  % prune choice point for efficiency
-  reverse(R,[_Init|Path]),
-  query_world(agent_do_moves,[oscar,Path]).
+  reverse(R,[_Init|Path]).
+  % query_world(agent_do_moves,[Agent,Path]).
 
 solve_task_1_3_new(Task, Cost) :- % TODO update name
-  agent_current_position(oscar, Pos),
+  my_agent(Agent),!,
+  query_world( agent_current_position, [Agent, Pos] ),
   calc_fvalue(Task, Pos, 0, FCost),
   solve_task_astar(Task, [[c(FCost, 0, Pos), Pos]], ReversedPath, Cost, _),!,
   reverse(ReversedPath, [_Init|Path]),
-  query_world(agent_do_moves,[oscar,Path]).
+  query_world(agent_do_moves,[Agent,Path]).
 
 %%%%%%%%%% Part 1 & 3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
